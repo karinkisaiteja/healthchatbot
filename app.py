@@ -13,10 +13,14 @@ from keras.models import load_model
 import streamlit as st
 
 # Load the pre-trained model and other data
-model = load_model('chatbot_model.h5')
-intents = json.loads(open('intents1.json').read())
-words = pickle.load(open('words.pkl', 'rb'))
-classes = pickle.load(open('classes.pkl', 'rb'))
+try:
+    model = load_model('chatbot_model.h5')
+    intents = json.loads(open('intents1.json').read())
+    words = pickle.load(open('words.pkl', 'rb'))
+    classes = pickle.load(open('classes.pkl', 'rb'))
+except Exception as e:
+    st.write("Error loading model or data:", e)
+    exit()
 
 def clean_up_sentence(sentence):
     sentence_words = nltk.word_tokenize(sentence)
@@ -38,20 +42,29 @@ def predict_class(sentence, model):
     ERROR_THRESHOLD = 0.25
     results = [[i, r] for i, r in enumerate(res) if r > ERROR_THRESHOLD]
     results.sort(key=lambda x: x[1], reverse=True)
-    return results
+    return_list = []
+    for r in results:
+        return_list.append({"intent": classes[r[0]], "probability": str(r[1])})
+    return return_list
 
-def get_response(ints, intents_json):
-    tag = ints[0]['intent']
-    list_of_intents = intents_json['intents']
-    for i in list_of_intents:
-        if i['tag'] == tag:
-            result = random.choice(i['responses'])
-            break
-    return result
+def get_response(ints, intents):
+    if len(ints) > 0:
+        tag = ints[0]['intent']
+        list_of_intents = intents['intents']
+        for i in list_of_intents:
+            if i['tag'] == tag:
+                result = random.choice(i['responses'])
+                break
+        return result
+    else:
+        return "I'm sorry, I didn't understand that."
 
 st.title("Chatbot")
 user_message = st.text_input("Your message")
 if st.button("Send"):
-    ints = predict_class(user_message, model)
-    res = get_response(ints, intents)
-    st.write(res)
+    if user_message:
+        ints = predict_class(user_message, model)
+        res = get_response(ints, intents)
+        st.write(res)
+    else:
+        st.write("Please enter a message.")
