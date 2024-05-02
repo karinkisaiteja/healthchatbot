@@ -1,5 +1,4 @@
 import random
-
 import nltk
 from nltk.stem import WordNetLemmatizer
 lemmatizer = WordNetLemmatizer()
@@ -9,9 +8,7 @@ import pickle
 import numpy as np
 from keras.models import load_model
 
-from flask import Flask, render_template, request
-
-app = Flask(__name__)
+import streamlit as st
 
 # Load the pre-trained model and other data
 model = load_model('chatbot_model.h5')
@@ -39,10 +36,7 @@ def predict_class(sentence, model):
     ERROR_THRESHOLD = 0.25
     results = [[i, r] for i, r in enumerate(res) if r > ERROR_THRESHOLD]
     results.sort(key=lambda x: x[1], reverse=True)
-    return_list = []
-    for r in results:
-        return_list.append({"intent": classes[r[0]], "probability": str(r[1])})
-    return return_list
+    return results
 
 def get_response(ints, intents_json):
     tag = ints[0]['intent']
@@ -53,16 +47,9 @@ def get_response(ints, intents_json):
             break
     return result
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/get_response', methods=['POST'])
-def get_bot_response():
-    user_message = request.form['user_message']
+st.title("Chatbot")
+user_message = st.text_input("Your message")
+if st.button("Send"):
     ints = predict_class(user_message, model)
     res = get_response(ints, intents)
-    return res
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    st.write(res)
